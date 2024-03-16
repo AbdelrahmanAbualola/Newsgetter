@@ -20,7 +20,7 @@ class Scrappers():
                             start_date='', end_date='', country='', search_language='', search_type=''):
 
         # Building Main Query
-        QUERY = '("' + '+AND+'.join(['"' + word.replace(" ","+") + '"' for word in query]) + '")' if type(query) is list else '("' + query.replace(" ","+") + '")'
+        QUERY = '(' + '+OR+'.join(['"' + word.replace(" ","+") + '"' for word in query]) + ')' if type(query) is list else '("' + query.replace(" ","+") + '")'
         EXACT_WORDS = '+OR+'.join(['"' + word + '"' for word in exact_words]) if exact_words else ''
         NONE_OF_WORDS = '+'.join(['-' + word for word in none_of_words]) if none_of_words else ''
         SITE_OR_DOMAIN = '+OR+'.join(['+site:' + site for site in site_or_domain])  if site_or_domain else ''
@@ -123,43 +123,46 @@ class Scrappers():
     def Site_Scrapper(Url,Keywords=''):
         try:
             try:
-                #--------------------------------------------------------------------------------
-                # Step 1: Get Website content using WebTrench
-                #--------------------------------------------------------------------------------
-                Paragraphs = TextScrapper.paragraph_from_url(Url)
-                Paragraphs = ([p.text.strip() for p in Paragraphs])
-                
-                if len(Paragraphs)<=1:
-                    try:
+                try:
+                    #--------------------------------------------------------------------------------
+                    # Step 1: Get Website content using WebTrench
+                    #--------------------------------------------------------------------------------
+                    Paragraphs = TextScrapper.paragraph_from_url(Url)
+                    Paragraphs = ([p.text.strip() for p in Paragraphs])
+                    
+                except:
                         #--------------------------------------------------------------------------------
                         # Step 1: Get Website content using Requests
                         #--------------------------------------------------------------------------------
-                        response = requests.get(Url)
+                        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"} 
+                        response = requests.get(Url, headers=headers, timeout=60)
+                        response.encoding = response.apparent_encoding
                         soup = BeautifulSoup(response.text,'html5lib')
                         
                         #--------------------------------------------------------------------------------
                         # Step 2: Get and clean Paragraphs
                         #--------------------------------------------------------------------------------
                         Paragraphs = [paragraph.text.strip() for paragraph in soup.find_all('p') if len(paragraph.text.strip()) > 1]
-                    
-                    
-                    except:
-                        #--------------------------------------------------------------------------------
-                        # Step 1: Get Website content using Requests Using Selenium
-                        #--------------------------------------------------------------------------------
-                        chrome_options = Options()
-                        chrome_options.add_argument("--headless")
-                        driver = webdriver.Chrome(options=chrome_options)
-                        driver.get(Url)
-        
-                        #--------------------------------------------------------------------------------
-                        # Step 2: Get and clean Paragraphs
-                        #--------------------------------------------------------------------------------
-                        Paragraphs = [paragraph.text.strip() for paragraph in driver.find_elements(By.TAG_NAME, "p") if len(paragraph.text.strip())>1]
-                        driver.close()
+                        
+                        
+                        if len(Paragraphs) <=1:
+                            #--------------------------------------------------------------------------------
+                            # Step 1: Get Website content using Requests Using Selenium
+                            #--------------------------------------------------------------------------------
+                            chrome_options = Options()
+                            chrome_options.add_argument("--headless")
+                            driver = webdriver.Chrome(options=chrome_options)
+                            driver.get(Url)
             
-            except:
+                            #--------------------------------------------------------------------------------
+                            # Step 2: Get and clean Paragraphs
+                            #--------------------------------------------------------------------------------
+                            Paragraphs = [paragraph.text.strip() for paragraph in driver.find_elements(By.TAG_NAME, "p") if len(paragraph.text.strip())>1]
+                            driver.close()
+            
+            except Exception as e:
                 Paragraphs = ""
+                print(f"Problem in Webscraping \nLink:{Url} \nError{e}")
             #--------------------------------------------------------------------------------
             # Step 3: Get Most Relevant Paragraphs
             #--------------------------------------------------------------------------------
@@ -186,10 +189,10 @@ class Scrappers():
                     "Link":Url}
         except:
             page = {
-                    "Paragraphs":"Site Wasn't Scrapped",
-                    "Most Relevant Paragraphs":"Site Wasn't Scrapped",
-                    "Keywords Analysis":"Site Wasn't Scrapped",
-                    "Keywords Total":"Site Wasn't Scrapped",
+                    "Paragraphs":"N/A",
+                    "Most Relevant Paragraphs":"N/A",
+                    "Keywords Analysis":"N/A",
+                    "Keywords Total":"N/A",
                     "Link":Url}
             
         return page    
